@@ -36,7 +36,12 @@ def gaussian(mean,sdev,x):
     return np.exp(expo)/fac
     
 
-
+def equi_log10(min,max,N):
+    logmin  = np.log10(min)
+    logmax  = np.log10(max)
+    logvals = np.linspace(logmin,logmax,N)
+    arr   = np.power(10,logvals)
+    return arr
 
 
 
@@ -125,8 +130,15 @@ print("done")
 
 
 
-fcs    = np.flip( np.linspace(0.1,1.0,3) ) # descending order
-masses = [0.1,1.0,10]
+#fcs    = np.flip( np.linspace(0.1,1.0,3) ) # descending order
+#masses = [0.1,1.0,10]
+fcs    = [1.0,0.5,0.1]
+print("PBH/DM density ratio: ")
+print(fcs)
+masses = equi_log10(0.00001,100,50)
+print("Masses: ")
+print(masses)
+
 
 
 # The following loop parses first the fraction (descending) and then the mass (ascending).
@@ -252,3 +264,5 @@ for fc in fcs:
 
     with open(output_file_grid,'a') as myfile:
         myfile.write(f'\n')
+
+print("ALL DONE")
