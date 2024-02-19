@@ -5,11 +5,8 @@ import json
 import numpy as np
 import astropy.cosmology
 
-models_path = "/home/giorgos/myCodes/model_quasar_EWs/variability_model_classes"
-if not os.path.isdir(models_path):
-    models_path = "variability_model_classes/"
-    print("Variability model classes are assumed to be in the current path.")
-sys.path.append(models_path)
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "variability_model_classes"))
 
 from intrinsic_model_class import InModel_simple
 from lensing_model_class import *
