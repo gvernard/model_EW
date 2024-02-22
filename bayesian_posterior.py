@@ -129,7 +129,8 @@ print("done")
 
 #fcs    = np.flip( np.linspace(0.1,1.0,3) ) # descending order
 #masses = [0.1,1.0,10]
-fcs    = [1.0,0.5,0.1]
+fcs    = [1.0]
+#fcs    = [1.0,0.5,0.1]
 print("PBH/DM density ratio: ")
 print(fcs)
 #masses = equi_log10(0.00001,100,50)
