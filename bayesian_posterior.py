@@ -132,10 +132,10 @@ print("done")
 fcs    = [1.0,0.5,0.1]
 print("PBH/DM density ratio: ")
 print(fcs)
-masses = equi_log10(0.00001,100,50)
+#masses = equi_log10(0.00001,100,50)
+masses = np.concatenate(( equi_log10(0.00001,0.001,20), equi_log10(0.001,1,100), equi_log10(1,100,20) ))
 print("Masses: ")
 print(masses)
-
 
 
 # The following loop parses first the fraction (descending) and then the mass (ascending).
