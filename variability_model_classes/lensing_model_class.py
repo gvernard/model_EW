@@ -224,6 +224,104 @@ class Velocity:
 
 ####################################################################################################
 # Rv model with fixed mass
+class PrvModel_fixed_mass_nonorm():
+    Nzl    = 300
+    zl_arr = np.empty(Nzl)
+    pzl    = np.empty(Nzl)
+    fc = 1.0
+    Odm = 0.85*0.3 # 85% of the matter density Omega_M
+    
+    
+    def __init__(self,cosmo,ra,dec,zs,fc,rvs=None):
+        self.cosmo = cosmo
+        self.zs = zs
+        self.fc = fc
+        
+        # set the lens redshift probability
+        self.lensRedshiftPrior(zs)
+            
+        # rv output vector
+        if rvs is None:
+            self.rv_arr = np.concatenate((np.linspace(0.0,0.5,500),np.linspace(0.501,15,100)),axis=0)
+        else:
+            self.rv_arr = rvs
+        self.Nrv = len(self.rv_arr)
+        self.dp_rv = np.empty(self.Nrv)
+            
+        check = False
+        if check:
+            # load the rice coefficients without the time
+            dum = 0
+        else:
+            # set the velocity model
+            self.velObj = Velocity(ra,dec,zs,self.cosmo)
+            print("Vcmb on the plane of the sky (unprojected) is: ",self.velObj.vcmb)
+            # Calculate the Rice coeeficients without the time
+            self.nu_rice,self.sigma_rice = self.getRiceCoeffs_M(1.0)
+
+    def lensRedshiftPrior(self,zs):
+        zl_min = 0.001
+        zl_max = zs-0.001
+        self.zl_arr = np.linspace(zl_min,zl_max,self.Nzl)
+        tauP = probZl(zs,self.cosmo)
+        for i in range(0,self.Nzl):
+            Dl  = self.cosmo.angular_diameter_distance(self.zl_arr[i]).value
+            tau = self.fc*self.Odm*tauP.optical_depth(self.zl_arr[i],Dl)
+            #self.pzl[i] = tau*np.exp(-tau)
+            self.pzl[i] = 1 - np.exp(-tau)
+
+    def getRiceCoeffs_M(self,mass):
+        nu_rice    = np.empty(self.Nzl)
+        sigma_rice = np.empty(self.Nzl)
+        for i in range(0,self.Nzl):
+            nu_rice[i],sigma_rice[i] = self.getRiceCoeffs(mass,self.zl_arr[i])
+        print("Rice distribution nu,sigma coefficients ready for a given MASS")
+        return nu_rice,sigma_rice
+
+    def getRiceCoeffs(self,mass,zl):
+        Dl      = self.cosmo.angular_diameter_distance(zl).value
+        Dls     = self.cosmo.angular_diameter_distance_z1z2(zl,self.zs).value
+        vcmb    = self.velObj.vcmb_proj(zl,Dl,Dls)
+        sigma_v = self.velObj.sigma_v(zl,Dl)
+        RE      = self.Rein(Dl,self.velObj.Ds,Dls,mass)
+        nu_rice = 0.03154*vcmb/RE
+        sigma_rice = 0.03154*sigma_v/RE
+        return nu_rice,sigma_rice
+    
+    def Rein(self,Dl,Ds,Dls,M):
+        return 13.5*np.sqrt(M*Dls*Ds/Dl) # in 10^14 cm
+    
+    def myrice(self,n,s,r):
+        termA = r/np.power(s,2)
+        termB = scipy.special.iv(0,r*n/np.power(s,2))
+        termC = np.exp(-(np.power(r,2)+np.power(n,2))/(2*np.power(s,2)))
+        # I need the following check because for very small values of n I get an overflow error (number too small to be represented as double)
+        if termA == 0 or termB == 0 or termC == 0:
+            return 0.0
+        else:
+            return termA*termB*termC
+
+    def integral_over_zl_only(self,nu_rice,sigma_rice):
+        # One dimensional integral on zl, for fixed mass
+        for k in range(0,self.Nrv):
+            dp = np.empty(self.Nzl)
+            for i in range(0,self.Nzl):
+                dp[i] = self.myrice(nu_rice[i],sigma_rice[i],self.rv_arr[k])*self.pzl[i]
+            self.dp_rv[k] = integrate(self.zl_arr,dp)
+
+    def Prv_M(self,t,mass):
+        # Probability for a given M (integrated over zl)
+        nu_rice,sigma_rice = self.getRiceCoeffs_M(mass)
+        self.integral_over_zl_only(t*nu_rice,t*sigma_rice)
+        return self.rv_arr,self.dp_rv
+####################################################################################################
+
+
+
+
+
+####################################################################################################
+# Rv model with fixed mass
 class PrvModel_fixed_mass():
     Nzl    = 300
     zl_arr = np.empty(Nzl)

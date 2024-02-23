@@ -83,6 +83,17 @@ t = myjson["t"] # in years
 r_data = myjson["r"]
 sigma  = myjson["sigma"]
 
+fcs = myjson["fcs"]
+masses = myjson["masses"]
+
+
+
+print("PBH/DM density ratio: ",len(fcs))
+print(fcs)
+print("Masses: ",len(masses))
+print(masses)
+
+
 
 
 # Setting up other variables
@@ -127,18 +138,6 @@ print("done")
 
 
 
-#fcs    = np.flip( np.linspace(0.1,1.0,3) ) # descending order
-#masses = [0.1,1.0,10]
-fcs    = [1.0]
-#fcs    = [1.0,0.5,0.1]
-print("PBH/DM density ratio: ")
-print(fcs)
-#masses = equi_log10(0.00001,100,50)
-masses = np.concatenate(( equi_log10(0.00001,0.001,20), equi_log10(0.001,1,100), equi_log10(1,100,20) ))
-print("Masses: ")
-print(masses)
-
-
 # The following loop parses first the fraction (descending) and then the mass (ascending).
 # So it produces a fcs-mass (y-x) grid.
 for fc in fcs:
@@ -148,7 +147,8 @@ for fc in fcs:
         # Calculate ratios from the lensing model
         ##################################################################################
         print("Lensing model...")
-        myPrvModel = PrvModel_fixed_mass(cosmo,ra,dec,zs,fc)
+        #myPrvModel = PrvModel_fixed_mass(cosmo,ra,dec,zs,fc)
+        myPrvModel = PrvModel_fixed_mass_nonorm(cosmo,ra,dec,zs,fc)
         rv,prv     = myPrvModel.Prv_M(t,mass)
         myMagModel = MagModel(rv,prv,2.0) # mu0 is dummy here
         
