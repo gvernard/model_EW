@@ -255,7 +255,7 @@ for fc in fcs:
 
         
         with open(output_file,'a') as myfile:
-            myfile.write(f'{mass:.3f},{fc:.3f},{post:.10f}\n')
+            myfile.write(f'{mass:.8f},{fc:.38},{post:.10f}\n')
 
         with open(output_file_grid,'a') as myfile:
             myfile.write(f' {post:.10f}')
