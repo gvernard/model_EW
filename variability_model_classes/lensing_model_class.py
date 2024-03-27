@@ -128,17 +128,15 @@ class probZl:
     zs = 0.0
     tau_norm = 1.0
     L_H = 4420 # This is the Hubble length (c/H0) in Mpc
-    
+
     def __init__(self,zs,cosmo):
         self.cosmo = cosmo
         self.zs = zs
         mysum = 0.0
         zz  = np.linspace(0.001,self.zs-0.001,100)
         for i in range(0,99):
-            D = self.cosmo.angular_diameter_distance(zz[i]).value # in Mpc
-            tau1 = self.optical_depth(zz[i],D)
-            D = self.cosmo.angular_diameter_distance(zz[i+1]).value # in Mpc
-            tau2 = self.optical_depth(zz[i+1],D)
+            tau1 = self.optical_depth(zz[i])
+            tau2 = self.optical_depth(zz[i+1])
             mysum += (tau1*np.exp(-tau1) + tau2*np.exp(-tau2))*(zz[i+1]-zz[i])/2.0
         self.tau_norm = mysum
             
@@ -148,18 +146,52 @@ class probZl:
         dprob = np.power(1.0+zt_l,2.0)*(Dol)*(Dls)/self.cosmo.efunc(zt_l) # H(z) = efunc(z)*H0, we already factor out H0 
         return dprob
 
-    def optical_depth(self,zt_s,Dt_s):
+    def optical_depth(self,zs):
         #zt_l_arr = np.arange(0.01,zt_s,0.01)
-        zt_l_arr = np.linspace(0.001,zt_s,100)
-        dprob = np.empty(len(zt_l_arr))
-        for i in range(0,len(zt_l_arr)):
-            dprob[i] = self.optical_depth_integrand(zt_l_arr[i],zt_s)            
-        myint = integrate(zt_l_arr,dprob)
-        return (6/self.L_H)*myint/(Dt_s) # Still need to multiply by the density parameter
+        zz = np.linspace(0.001,zs,100)
+        dprob = np.empty(len(zz))
+        for i in range(0,len(zz)):
+            dprob[i] = self.optical_depth_integrand(zz[i],zs)
+        myint = integrate(zz,dprob)
+        Ds = self.cosmo.angular_diameter_distance(zs).value # in Mpc
+        return myint/(Ds) # Still need to multiply by the density parameter
 
-    def Pzlens(self,z,Dz):
-        tau_z = self.optical_depth(z,Dz)
-        return tau_z*np.exp(-tau_z)/self.tau_norm
+    def dev_optical_depth(self,zs):
+        N = 50
+        zz  = np.linspace(0.001,zs-0.001,N)
+
+        Ez  = self.cosmo.efunc(zs)
+        Dcz = self.cosmo.angular_diameter_distance(zs).value*(1.0+zs)
+        F1 = self.L_H/(Ez*Dcz)-1.0/(1.0+zs)
+        F2 = 1.0/(Dcz*(1.0+zs))
+
+        integrand1 = np.zeros(N)
+        integrand2 = np.zeros(N)
+        for i in range(0,N):
+            Dczz = self.cosmo.angular_diameter_distance(zz[i]).value*(1.0+zz[i])
+            Ezz  = self.cosmo.efunc(zz[i])
+            fac = (1+zz[i])*Dczz/Ezz
+            integrand1[i] = fac
+            integrand2[i] = fac*Dczz
+        I1 = integrate(zz,integrand1)
+        I2 = integrate(zz,integrand2)
+
+        tau = self.optical_depth(zs)
+        return -F1*tau + F1*I1 + F2*I2
+
+    def Pzlens(self,k,z,A):
+        tau_z = A*self.optical_depth(z)
+        dev_tau_z = A*self.dev_optical_depth(z)
+        prob = np.power(tau_z,k)*np.exp(-tau_z)*np.abs(dev_tau_z)/np.math.factorial(k)
+        #prob = np.power(tau_z,k)*np.exp(-tau_z)/np.math.factorial(k)
+        return prob
+
+    def PzAllLenses(self,z,A):
+        tau_z = A*self.optical_depth(z)
+        dev_tau_z = A*self.dev_optical_depth(z)
+        prob = (1.0 - np.exp(-tau_z))*np.abs(dev_tau_z)
+        return prob
+        
 ####################################################################################################
 
 
@@ -230,7 +262,7 @@ class PrvModel_fixed_mass_nonorm():
     pzl    = np.empty(Nzl)
     fc = 1.0
     Odm = 0.85*0.3 # 85% of the matter density Omega_M
-    
+    L_H = 4420 # This is the Hubble length (c/H0) in Mpc
     
     def __init__(self,cosmo,ra,dec,zs,fc,rvs=None):
         self.cosmo = cosmo
@@ -238,6 +270,7 @@ class PrvModel_fixed_mass_nonorm():
         self.fc = fc
         
         # set the lens redshift probability
+        self.A = 6.0*self.fc*self.Odm/L_H
         self.lensRedshiftPrior(zs)
             
         # rv output vector
@@ -263,12 +296,13 @@ class PrvModel_fixed_mass_nonorm():
         zl_min = 0.001
         zl_max = zs-0.001
         self.zl_arr = np.linspace(zl_min,zl_max,self.Nzl)
-        tauP = probZl(zs,self.cosmo)
+        myTauModel = probZl(zs,self.cosmo)
         for i in range(0,self.Nzl):
-            Dl  = self.cosmo.angular_diameter_distance(self.zl_arr[i]).value
-            tau = self.fc*self.Odm*tauP.optical_depth(self.zl_arr[i],Dl)
+            #Dl  = self.cosmo.angular_diameter_distance(self.zl_arr[i]).value
+            #tau = self.fc*self.Odm*tauP.optical_depth(self.zl_arr[i],Dl)
             #self.pzl[i] = tau*np.exp(-tau)
-            self.pzl[i] = 1 - np.exp(-tau)
+            dev_tau = myTauModel.dev_optical_depth(zs)
+            self.pzl[i] = myTauModel.PzAllLenses(zs,self.A)
 
     def getRiceCoeffs_M(self,mass):
         nu_rice    = np.empty(self.Nzl)

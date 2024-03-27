@@ -28,8 +28,16 @@ myjson     = json.loads(input_str)
 ra  = myjson['ra']
 dec = myjson['dec']
 zs  = myjson['zs']
-imf_type = myjson['imf_type']
 cosmo = astropy.cosmology.LambdaCDM(H0=70,Om0=0.3,Ode0=0.7)
+
+
+if "img_type" in myjson:
+    flag = 'IMF'
+    imf_type = myjson['imf_type']
+else:
+    flag = 'Single'
+    fc = myjson["fc"]
+    mass = myjson["mass"]
 
 # for intrinsic
 Mi    = myjson['Mi']
@@ -44,8 +52,12 @@ t = myjson["t"] # in years
 
 # Calculate ratios from the lensing model
 print("Lensing model...")
-myPrvModel = PrvModel(cosmo,ra,dec,zs,imf_type)
-rv,prv     = myPrvModel.Prv_MZ(t)
+if flag == "IMF":
+    myPrvModel = PrvModel(cosmo,ra,dec,zs,imf_type)
+    rv,prv     = myPrvModel.Prv_MZ(t)
+else:
+    myPrvModel = PrvModel_fixed_mass_nonorm(cosmo,ra,dec,zs,fc)
+    rv,prv     = myPrvModel.Prv_M(t,mass)
 np.savetxt(path+"prvs_MZ.dat",np.c_[rv,prv])
 
 myMagModel = MagModel(rv,prv,2.0) # mu0 is dummy here
