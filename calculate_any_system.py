@@ -55,10 +55,11 @@ print("Lensing model...")
 if flag == "IMF":
     myPrvModel = PrvModel(cosmo,ra,dec,zs,imf_type)
     rv,prv     = myPrvModel.Prv_MZ(t)
+    np.savetxt(path+"prvs_MZ.dat",np.c_[rv,prv])
 else:
     myPrvModel = PrvModel_fixed_mass_nonorm(cosmo,ra,dec,zs,fc)
     rv,prv     = myPrvModel.Prv_M(t,mass)
-np.savetxt(path+"prvs_MZ.dat",np.c_[rv,prv])
+    np.savetxt(path+"prvs_M.dat",np.c_[rv,prv])
 
 myMagModel = MagModel(rv,prv,2.0) # mu0 is dummy here
 

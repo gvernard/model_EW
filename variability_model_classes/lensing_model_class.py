@@ -270,7 +270,7 @@ class PrvModel_fixed_mass_nonorm():
         self.fc = fc
         
         # set the lens redshift probability
-        self.A = 6.0*self.fc*self.Odm/L_H
+        self.A = 6.0*self.fc*self.Odm/self.L_H
         self.lensRedshiftPrior(zs)
             
         # rv output vector
