@@ -301,7 +301,7 @@ class PrvModel_fixed_mass_nonorm():
             #Dl  = self.cosmo.angular_diameter_distance(self.zl_arr[i]).value
             #tau = self.fc*self.Odm*tauP.optical_depth(self.zl_arr[i],Dl)
             #self.pzl[i] = tau*np.exp(-tau)
-            dev_tau = myTauModel.dev_optical_depth(zs)
+            #dev_tau = myTauModel.dev_optical_depth(zs)
             self.pzl[i] = myTauModel.PzAllLenses(zs,self.A)
 
     def getRiceCoeffs_M(self,mass):
