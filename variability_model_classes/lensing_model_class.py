@@ -292,6 +292,7 @@ class PrvModel_fixed_mass_nonorm():
             # Calculate the Rice coeeficients without the time
             self.nu_rice,self.sigma_rice = self.getRiceCoeffs_M(1.0)
 
+    '''
     def lensRedshiftPrior(self,zs):
         zl_min = 0.001
         zl_max = zs-0.001
@@ -303,7 +304,16 @@ class PrvModel_fixed_mass_nonorm():
             #self.pzl[i] = tau*np.exp(-tau)
             #dev_tau = myTauModel.dev_optical_depth(zs)
             self.pzl[i] = myTauModel.PzAllLenses(zs,self.A)
+    '''
 
+    def lensRedshiftPrior(self,zs):
+        zl_min = 0.001
+        zl_max = zs-0.001
+        self.zl_arr = np.linspace(zl_min,zl_max,self.Nzl)
+        fac = 4.0/(np.power(1.0+zs,4)-1.0)
+        for i in range(0,self.Nzl):
+            self.pzl[i] = fac*np.power(1.0+self.zl_arr[i],3)
+            
     def getRiceCoeffs_M(self,mass):
         nu_rice    = np.empty(self.Nzl)
         sigma_rice = np.empty(self.Nzl)
@@ -755,6 +765,7 @@ class MagModel():
         if mu < self.mu_thres:
             return 0.0
         else:
-            A = np.sqrt(self.mu_thres*self.mu_thres-1)/(self.mu_thres-np.sqrt(self.mu_thres*self.mu_thres-1))
+            fac = np.sqrt(self.mu_thres*self.mu_thres-1)
+            A = fac/(self.mu_thres-fac)
             return A/(np.power(mu*mu-1,1.5))
 ####################################################################################################
