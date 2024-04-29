@@ -2,7 +2,8 @@
     "ra": 172.96,
     "dec": -12.5,
     "t": 10,
-    "imf_type": "chabrier",
+    "fc": 1.0,
+    "mass": 1.0,
     "zs": 0.5,
     "Mi": -23,
     "lrest": 5007

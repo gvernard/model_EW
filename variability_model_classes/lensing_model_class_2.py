@@ -22,6 +22,23 @@ def integrate(x_arr,y_arr):
         mysum += (y_arr[i+1]+y_arr[i])*(x_arr[i+1]-x_arr[i])/2.0
     return mysum
 
+# This gets the combined Lensing and Intrinsic model
+def perform_comb_int(mu_co,mu_le,p_le,mu_in,p_in):
+    mu_tmp  = np.concatenate( (equi_log(0.01,5,500),np.linspace(5.001,30,50)) ,axis=0)
+    term_le = np.interp(mu_tmp,mu_le,p_le,right=0.0,left=0.0)
+
+    pmu_co  = np.zeros(len(mu_co))
+    for q in range(0,len(mu_co)):
+        z = mu_co[q]/mu_tmp
+        term_in = np.interp(z,mu_in,p_in,right=0.0,left=0.0)
+        tmp = np.zeros(len(mu_tmp))
+        for j in range(0,len(mu_tmp)):
+            tmp[j] = term_le[j]*term_in[j]/mu_tmp[j]
+        pmu_co[q] = integrate(mu_tmp,tmp)
+        
+    return pmu_co
+
+
 
 ####################################################################################################
 # Velocity model
@@ -98,7 +115,7 @@ class PrvModel():
             
         # set the velocity model
         self.velObj = Velocity(ra,dec,zs,self.cosmo)
-        print("Vcmb on the plane of the sky (unprojected) is: ",self.velObj.vcmb)
+        #print("Vcmb on the plane of the sky (unprojected) is: ",self.velObj.vcmb)
         # Calculate the Rice coeeficients without the time
         self.nu_rice,self.sigma_rice = self.getRiceCoeffs(self.M,self.zl)
         
@@ -129,8 +146,8 @@ class PrvModel():
     def Prv(self,t):
         nu_rice,sigma_rice = self.getRiceCoeffs(self.M,self.zl)
 
-        for i in range(0,self.Nzl):
-            dp_rv[i] = self.myrice(t*nu_rice,t*sigma_rice,self.rv_arr[i])
+        for i in range(0,self.Nrv):
+            self.dp_rv[i] = self.myrice(t*nu_rice,t*sigma_rice,self.rv_arr[i])
 
         return self.dp_rv
 ####################################################################################################
@@ -186,6 +203,9 @@ class MagModel():
         self.mu_0 = mu0
         r0 = self.radius(mu0)
         self.priv_PrsModel.r0 = r0
+
+    def reset_prv(self,prv):
+        self.priv_PrsModel.prv = prv
         
     def radius(self,mu):
         r2 = 2*( mu/np.sqrt(mu*mu-1) - 1)

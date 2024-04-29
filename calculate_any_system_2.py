@@ -8,7 +8,7 @@ import astropy.cosmology
 sys.path.append("variability_model_classes")
 
 from intrinsic_model_class import InModel_simple
-from lensing_model_class import *
+from lensing_model_class_2 import *
 
 
 
@@ -58,44 +58,45 @@ p_le_ratios = np.zeros(len(le_ratios))
 Nzl    = 300
 zl_min = 0.001
 zl_max = zs-0.001
-zl_arr = np.linspace(zl_min,zl_max,self.Nzl)
-nzl = np.empty(Nzl)
+zl_arr = np.linspace(zl_min,zl_max,Nzl)
+npzl = np.empty(Nzl)
 
 rv  = np.concatenate((np.linspace(0.0,0.5,500),np.linspace(0.501,15,100)),axis=0)
 
 
-prv_arr = [None]*len(zl_arr)
-for i in range(0,len(zl_arr)):
+prv_tmp = [None]*Nzl
+for i in range(0,Nzl):
     zl = zl_arr[i]
-    myPrvModel = PrvModel(cosmo,ra,dec,zs,M,zl,rv)
-    prv_arr[i] = myPrvModel.Prv(t)
-    nzl[i]     = np.power(1+zl,5)*np.power(myPrvModel.Dl,2)/cosmo.efunc(zl)
-norm = integrate(zl_arr,nzl)    
+    myPrvModel = PrvModel(cosmo,ra,dec,zs,mass,zl,rv)
+    prv_tmp[i] = myPrvModel.Prv(t)
+    npzl[i]    = np.power(1+zl,5)*np.power(myPrvModel.Dl,2)/cosmo.efunc(zl)
+norm = integrate(zl_arr,npzl)
+prvs = np.asarray(prv_tmp)
 
+prv = np.empty(len(rv))
+for j in range(0,len(rv)):
+    integrant = np.multiply(prvs[:,j],npzl)
+    prv[j] = integrate(zl_arr,integrant)/norm
 
+    
+    
+myMagModel = MagModel(rv,prv,2.0) # mu0 is dummy here
 
 for k in range(0,len(le_ratios)):
-    print("ratio ",round(le_ratios[i],4),'   ',i,"/",len(le_ratios))
-
     if 0.7 < le_ratios[k] and le_ratios[k] < 1.0:
         mu0_arr = np.concatenate( (equi_log(1.001/le_ratios[k],3.000/le_ratios[k],800),equi_log(3.001/le_ratios[k],100,200)) ,axis=0)
     else:
         #mu0_arr = np.concatenate( (np.linspace(1.001,3.001,200),np.linspace(3.002,100,100)) ,axis=0)
         mu0_arr = np.concatenate( (equi_log(1.001,3.001,200),equi_log(3.002,100,100)) ,axis=0)
 
+    print("ratio ",round(le_ratios[k],4),'   ',k,"/",len(le_ratios),'  ',len(mu0_arr))
 
-    pzl = np.empty(Nzl)
-    for i in range(0,len(zl_arr)):
-        myMagModel = MagModel(rv,prv_arr[i],2.0) # mu0 is dummy here
-        p_mu0 = np.zeros(len(mu0_arr))
-        for j in range(0,len(mu0_arr)):
-            mu0 = mu0_arr[j]
-            myMagModel.reset_mu0(mu0)
-            p_mu0[j] = mu0*myMagModel.p_mu(le_ratios[i]*mu0)*myMagModel.p_mu0(mu0)
-        pzl[i] = integrate(mu0_arr,p_mu0)
-    
-    integrant = np.multiply(pzl,nzl)
-    p_le_ratios[k] = integrate(zl_arr,integrant)/norm
+    p_mu0 = np.zeros(len(mu0_arr))
+    for j in range(0,len(mu0_arr)):
+        mu0 = mu0_arr[j]
+        myMagModel.reset_mu0(mu0)
+        p_mu0[j] = mu0*myMagModel.p_mu(le_ratios[k]*mu0)*myMagModel.p_mu0(mu0)
+    p_le_ratios[k] = integrate(mu0_arr,p_mu0)
     
 print(integrate(le_ratios,p_le_ratios))
 np.savetxt(path+"le_dps_ratios.dat",np.c_[le_ratios,p_le_ratios])
