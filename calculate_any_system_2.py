@@ -69,7 +69,7 @@ for i in range(0,Nzl):
     zl = zl_arr[i]
     myPrvModel = PrvModel(cosmo,ra,dec,zs,mass,zl,rv)
     prv_tmp[i] = myPrvModel.Prv(t)
-    npzl[i]    = np.power(1+zl,5)*np.power(myPrvModel.Dl,2)/cosmo.efunc(zl)
+    npzl[i]    = np.power(1+zl,2)*np.power(myPrvModel.Dl,2)/cosmo.efunc(zl)
 norm = integrate(zl_arr,npzl)
 prvs = np.asarray(prv_tmp)
 
