@@ -1,3 +1,4 @@
+*.csv
 *.pdf
 /test_system/*.dat
 
